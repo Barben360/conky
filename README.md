@@ -1,4 +1,4 @@
-## Conky -- Patched for working along with Docker - only on classical Linux (all but FreeBSD, OpenBSD, DragonFly, Solaris)
+## Conky - Patched for working along with Docker - only on classical Linux (all but FreeBSD, OpenBSD, DragonFly, Solaris)
 
 [![Build Status](https://travis-ci.org/brndnmtthws/conky.png)](https://travis-ci.org/brndnmtthws/conky)
 
