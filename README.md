@@ -1,4 +1,4 @@
-## Conky
+## Conky -- Patched for working along with Docker - only on classical Linux (all but FreeBSD, OpenBSD, DragonFly, Solaris)
 
 [![Build Status](https://travis-ci.org/brndnmtthws/conky.png)](https://travis-ci.org/brndnmtthws/conky)
 
@@ -6,6 +6,14 @@
 any kind of information on your desktop.
 
 Grab the [latest release from GitHub](https://github.com/brndnmtthws/conky/releases/latest).
+
+### Patch details
+
+There is a major issue when running Conky while Docker is also running: As Docker creates virtual network interfaces, Conky reads them and adds them to its *netstats* list. However, *netstats* has a finite size (64 by default), and entries are never cleaned, so conky always exits with a segmentation fault when docker has been running for some time.
+
+On this fork, *netstats* entry is periodically cleaned so all virtual interfaces created by Docker which are not used anymore are removed from the list.
+
+There is a second modification, which allows you to monitor up to 25 processes using *top* command instead of only 10.
 
 ### Features
 
