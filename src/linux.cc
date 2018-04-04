@@ -98,7 +98,8 @@ struct sysfs {
 #define SHORTSTAT_TEMPL "%*s %llu %llu %llu"
 #define LONGSTAT_TEMPL "%*s %llu %llu %llu "
 
-static conky::simple_config_setting<bool> top_cpu_separate("top_cpu_separate", false, true);
+static conky::simple_config_setting<bool> top_cpu_separate("top_cpu_separate",
+		false, true);
 
 /* This flag tells the linux routines to use the /proc system where possible,
  * even if other api's are available, e.g. sysinfo() or getloadavg().
@@ -106,12 +107,10 @@ static conky::simple_config_setting<bool> top_cpu_separate("top_cpu_separate", f
  * using a flag in this manner creates less confusing code. */
 static int prefer_proc = 0;
 
-void prepare_update(void)
-{
+void prepare_update(void) {
 }
 
-int update_uptime(void)
-{
+int update_uptime(void) {
 #ifdef HAVE_SYSINFO
 	if (!prefer_proc) {
 		struct sysinfo s_info;
@@ -135,8 +134,7 @@ int update_uptime(void)
 	return 0;
 }
 
-int check_mount(struct text_object *obj)
-{
+int check_mount(struct text_object *obj) {
 	int ret = 0;
 	FILE *mtab;
 
@@ -163,8 +161,7 @@ int check_mount(struct text_object *obj)
 /* these things are also in sysinfo except Buffers:
  * (that's why I'm reading them from proc) */
 
-int update_meminfo(void)
-{
+int update_meminfo(void) {
 	FILE *meminfo_fp;
 	static int rep = 0;
 
@@ -173,8 +170,9 @@ int update_meminfo(void)
 
 	unsigned long long shmem = 0, sreclaimable = 0;
 
-	info.mem = info.memwithbuffers = info.memmax = info.memdirty = info.swap = info.swapfree = info.swapmax =
-        info.bufmem = info.buffers = info.cached = info.memfree = info.memeasyfree = 0;
+	info.mem = info.memwithbuffers = info.memmax = info.memdirty = info.swap =
+			info.swapfree = info.swapmax = info.bufmem = info.buffers =
+					info.cached = info.memfree = info.memeasyfree = 0;
 
 	if (!(meminfo_fp = open_file("/proc/meminfo", &rep))) {
 		return 0;
@@ -211,26 +209,25 @@ int update_meminfo(void)
 	info.swap = info.swapmax - info.swapfree;
 
 	/* Reclaimable memory: does not include shared memory, which is part of cached but unreclaimable.
-	   Includes the reclaimable part of the Slab cache though.
-	   Note: when shared memory is swapped out, shmem decreases and swapfree decreases - we want this.
-	*/
+	 Includes the reclaimable part of the Slab cache though.
+	 Note: when shared memory is swapped out, shmem decreases and swapfree decreases - we want this.
+	 */
 	info.bufmem = (info.cached - shmem) + info.buffers + sreclaimable;
 
 	/* Now (info.mem - info.bufmem) is the *really used* (aka unreclaimable) memory.
-	   When this value reaches the size of the physical RAM, and swap is full or non-present, OOM happens.
-	   Therefore this is the value users want to monitor, regarding their RAM.
-	*/
+	 When this value reaches the size of the physical RAM, and swap is full or non-present, OOM happens.
+	 Therefore this is the value users want to monitor, regarding their RAM.
+	 */
 
 	fclose(meminfo_fp);
 	return 0;
 }
 
-void print_laptop_mode(struct text_object *obj, char *p, int p_max_size)
-{
+void print_laptop_mode(struct text_object *obj, char *p, int p_max_size) {
 	FILE *fp;
 	int val = -1;
 
-	(void)obj;
+	(void) obj;
 
 	if ((fp = fopen("/proc/sys/vm/laptop_mode", "r")) != NULL) {
 		if (fscanf(fp, "%d\n", &val) <= 0)
@@ -244,8 +241,7 @@ void print_laptop_mode(struct text_object *obj, char *p, int p_max_size)
  * # cat /sys/block/sda/queue/scheduler
  * noop [anticipatory] cfq
  */
-void print_ioscheduler(struct text_object *obj, char *p, int p_max_size)
-{
+void print_ioscheduler(struct text_object *obj, char *p, int p_max_size) {
 	FILE *fp;
 	char buf[128];
 
@@ -265,8 +261,7 @@ void print_ioscheduler(struct text_object *obj, char *p, int p_max_size)
 		}
 	}
 	fclose(fp);
-out_fail:
-	snprintf(p, p_max_size, "n/a");
+	out_fail: snprintf(p, p_max_size, "n/a");
 	return;
 }
 
@@ -284,9 +279,8 @@ static struct {
 		x = strndup(y, text_buffer_size.get(*state)); \
 	}
 
-void update_gateway_info_failure(const char *reason)
-{
-	if(reason != NULL) {
+void update_gateway_info_failure(const char *reason) {
+	if (reason != NULL) {
 		perror(reason);
 	}
 	//2 pointers to 1 location causes a crash when we try to free them both
@@ -294,12 +288,10 @@ void update_gateway_info_failure(const char *reason)
 	gw_info.ip = strndup("failed", text_buffer_size.get(*state));
 }
 
-
 /* Iface Destination Gateway Flags RefCnt Use Metric Mask MTU Window IRTT */
 #define RT_ENTRY_FORMAT "%63s %lx %lx %x %*d %*d %*d %lx %*d %*d %*d\n"
 
-int update_gateway_info(void)
-{
+int update_gateway_info(void) {
 	FILE *fp;
 	struct in_addr ina;
 	char iface[64];
@@ -322,12 +314,12 @@ int update_gateway_info(void)
 	}
 
 	while (!feof(fp)) {
-		if(fscanf(fp, RT_ENTRY_FORMAT,
-			  iface, &dest, &gate, &flags, &mask) != 5) {
+		if (fscanf(fp, RT_ENTRY_FORMAT, iface, &dest, &gate, &flags, &mask)
+				!= 5) {
 			update_gateway_info_failure("fscanf()");
 			break;
 		}
-		if (!(dest || mask) && ((flags & RTF_GATEWAY) || !gate) ) {
+		if (!(dest || mask) && ((flags & RTF_GATEWAY) || !gate)) {
 			gw_info.count++;
 			SAVE_SET_STRING(gw_info.iface, iface)
 			ina.s_addr = gate;
@@ -338,35 +330,30 @@ int update_gateway_info(void)
 	return 0;
 }
 
-void free_gateway_info(struct text_object *obj)
-{
-	(void)obj;
+void free_gateway_info(struct text_object *obj) {
+	(void) obj;
 
 	free_and_zero(gw_info.iface);
 	free_and_zero(gw_info.ip);
 	memset(&gw_info, 0, sizeof(gw_info));
 }
 
-int gateway_exists(struct text_object *obj)
-{
-	(void)obj;
+int gateway_exists(struct text_object *obj) {
+	(void) obj;
 	return !!gw_info.count;
 }
 
-void print_gateway_iface(struct text_object *obj, char *p, int p_max_size)
-{
-	(void)obj;
+void print_gateway_iface(struct text_object *obj, char *p, int p_max_size) {
+	(void) obj;
 
 	snprintf(p, p_max_size, "%s", gw_info.iface);
 }
 
-void print_gateway_ip(struct text_object *obj, char *p, int p_max_size)
-{
-	(void)obj;
+void print_gateway_ip(struct text_object *obj, char *p, int p_max_size) {
+	(void) obj;
 
 	snprintf(p, p_max_size, "%s", gw_info.ip);
 }
-
 
 /**
  * Parses information from /proc/net/dev and stores them in ???
@@ -376,8 +363,7 @@ void print_gateway_ip(struct text_object *obj, char *p, int p_max_size)
  * @return always returns 0. May change in the future, e.g. returning non zero
  * if some error happened
  **/
-int update_net_stats(void)
-{
+int update_net_stats(void) {
 	FILE *net_dev_fp;
 	static int rep = 0;
 	/* variably to notify the parts averaging the download speed, that this
@@ -394,6 +380,8 @@ int update_net_stats(void)
 	struct ifconf conf;
 	char buf[256];
 	double delta;
+	unsigned int count = 0;
+	char list_devices_names[MAX_NET_INTERFACES][256];
 
 #ifdef BUILD_WLAN
 	// wireless info variables
@@ -417,8 +405,8 @@ int update_net_stats(void)
 	/* ignore first two header lines in file /proc/net/dev. If somethings
 	 * goes wrong, e.g. end of file reached, quit.
 	 * (Why isn't clear_net_stats called for this case ??? */
-	if (!fgets(buf, 255, net_dev_fp) ||  /* garbage */
-	    !fgets(buf, 255, net_dev_fp)) {  /* garbage (field names) */
+	if (!fgets(buf, 255, net_dev_fp) || /* garbage */
+	!fgets(buf, 255, net_dev_fp)) { /* garbage (field names) */
 		fclose(net_dev_fp);
 		return 0;
 	}
@@ -443,6 +431,15 @@ int update_net_stats(void)
 
 		s = p;
 
+		// Adding p to list_devices names
+		char char_tmp = ' ';
+		unsigned int char_cpt = 0;
+		while(char_tmp != '\0') {
+			char_tmp = p[char_cpt];
+			list_devices_names[i2][char_cpt++] = char_tmp;
+		}
+		count++;
+
 		/* increment p until the end of the interface name has been reached */
 		while (*p != '\0' && *p != ':') {
 			p++;
@@ -462,8 +459,9 @@ int update_net_stats(void)
 		memset(ns->addrs, 0, 17 * MAX_NET_INTERFACES + 1); /* Up to 17 chars per ip, max MAX_NET_INTERFACES interfaces. Nasty memory usage... */
 
 		/* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-		sscanf(p, "%lld  %*d     %*d  %*d  %*d  %*d   %*d        %*d       %lld",
-			&r, &t);
+		sscanf(p,
+				"%lld  %*d     %*d  %*d  %*d  %*d   %*d        %*d       %lld",
+				&r, &t);
 
 		/* if the interface is parsed the first time, then set recv and trans
 		 * to currently received, meaning the change in network traffic is 0 */
@@ -479,7 +477,7 @@ int update_net_stats(void)
 		}
 		/* move current traffic statistic to last thereby obsoleting the
 		 * current statistic */
-		last_recv  = ns->recv;
+		last_recv = ns->recv;
 		last_trans = ns->trans;
 
 		/* If recv or trans is less than last time, an overflow happened.
@@ -502,7 +500,8 @@ int update_net_stats(void)
 		/*** ip addr patch ***/
 		i = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
 
-		conf.ifc_buf = (char*)malloc(sizeof(struct ifreq) * MAX_NET_INTERFACES);
+		conf.ifc_buf = (char*) malloc(
+				sizeof(struct ifreq) * MAX_NET_INTERFACES);
 		conf.ifc_len = sizeof(struct ifreq) * MAX_NET_INTERFACES;
 		memset(conf.ifc_buf, 0, conf.ifc_len);
 
@@ -515,14 +514,13 @@ int update_net_stats(void)
 				break;
 
 			ns2 = get_net_stat(
-					((struct ifreq *) conf.ifc_buf)[k].ifr_ifrn.ifrn_name, NULL, NULL);
+					((struct ifreq *) conf.ifc_buf)[k].ifr_ifrn.ifrn_name, NULL,
+					NULL);
 			ns2->addr = ((struct ifreq *) conf.ifc_buf)[k].ifr_ifru.ifru_addr;
-			sprintf(temp_addr, "%u.%u.%u.%u, ",
-					ns2->addr.sa_data[2] & 255,
-					ns2->addr.sa_data[3] & 255,
-					ns2->addr.sa_data[4] & 255,
+			sprintf(temp_addr, "%u.%u.%u.%u, ", ns2->addr.sa_data[2] & 255,
+					ns2->addr.sa_data[3] & 255, ns2->addr.sa_data[4] & 255,
 					ns2->addr.sa_data[5] & 255);
-			if(NULL == strstr(ns2->addrs, temp_addr))
+			if (NULL == strstr(ns2->addrs, temp_addr))
 				strncpy(ns2->addrs + strlen(ns2->addrs), temp_addr, 17);
 		}
 
@@ -533,7 +531,7 @@ int update_net_stats(void)
 
 		if (!first) {
 			/* calculate instantenous speeds */
-			ns->net_rec  [0] = (ns->recv  - last_recv ) / delta;
+			ns->net_rec[0] = (ns->recv - last_recv) / delta;
 			ns->net_trans[0] = (ns->trans - last_trans) / delta;
 		}
 
@@ -574,7 +572,7 @@ int update_net_stats(void)
 				winfo->has_range = 1;
 			}
 			if (iw_get_stats(skfd, s, &(winfo->stats),
-					&winfo->range, winfo->has_range) >= 0) {
+							&winfo->range, winfo->has_range) >= 0) {
 				winfo->has_stats = 1;
 			}
 			if (iw_get_ext(skfd, s, SIOCGIWAP, &wrq) >= 0) {
@@ -592,7 +590,7 @@ int update_net_stats(void)
 			// get link quality
 			if (winfo->has_range && winfo->has_stats
 					&& ((winfo->stats.qual.level != 0)
-					|| (winfo->stats.qual.updated & IW_QUAL_DBM))) {
+							|| (winfo->stats.qual.updated & IW_QUAL_DBM))) {
 				if (!(winfo->stats.qual.updated & IW_QUAL_QUAL_INVALID)) {
 					ns->link_qual = winfo->stats.qual.qual;
 					ns->link_qual_max = winfo->range.max_qual.qual;
@@ -640,28 +638,30 @@ int update_net_stats(void)
 	//remove the old v6 addresses otherwise they are listed multiple times
 	for (unsigned int i = 0; i < MAX_NET_INTERFACES; i++) {
 		ns = &netstats[i];
-		while(ns->v6addrs != NULL) {
+		while (ns->v6addrs != NULL) {
 			lastv6 = ns->v6addrs;
 			ns->v6addrs = ns->v6addrs->next;
 			free(lastv6);
 		}
 	}
 	if ((file = fopen(PROCDIR"/net/if_inet6", "r")) != NULL) {
-		while (fscanf(file, "%32s %*02x %02x %02x %*02x %20s\n", v6addr, &netmask, &scope, devname) != EOF) {
+		while (fscanf(file, "%32s %*02x %02x %02x %*02x %20s\n", v6addr,
+				&netmask, &scope, devname) != EOF) {
 			ns = get_net_stat(devname, NULL, NULL);
-			if(ns->v6addrs == NULL) {
+			if (ns->v6addrs == NULL) {
 				lastv6 = (struct v6addr *) malloc(sizeof(struct v6addr));
 				ns->v6addrs = lastv6;
 			} else {
 				lastv6 = ns->v6addrs;
-				while(lastv6->next) lastv6 = lastv6->next;
+				while (lastv6->next)
+					lastv6 = lastv6->next;
 				lastv6->next = (struct v6addr *) malloc(sizeof(struct v6addr));
 				lastv6 = lastv6->next;
 			}
-			for(int i=0; i<16; i++)
-				sscanf(v6addr+2*i, "%2hhx", &(lastv6->addr.s6_addr[i]));
+			for (int i = 0; i < 16; i++)
+				sscanf(v6addr + 2 * i, "%2hhx", &(lastv6->addr.s6_addr[i]));
 			lastv6->netmask = netmask;
-			switch(scope) {
+			switch (scope) {
 			case 0:	//global
 				lastv6->scope = 'G';
 				break;
@@ -689,13 +689,14 @@ int update_net_stats(void)
 	first = 0;
 
 	fclose(net_dev_fp);
+	// cleaning net stats
+	clean_net_stat(list_devices_names, count);
 	return 0;
 }
 
 int result;
 
-int update_total_processes(void)
-{
+int update_total_processes(void) {
 	DIR *dir;
 	struct dirent *entry;
 	int ignore1;
@@ -720,8 +721,7 @@ int update_total_processes(void)
 	return 0;
 }
 
-int update_threads(void)
-{
+int update_threads(void) {
 #ifdef HAVE_SYSINFO
 	if (!prefer_proc) {
 		struct sysinfo s_info;
@@ -769,8 +769,7 @@ static short cpu_setup = 0;
  * idle values in proc stat.
  * Kernels around 2.6 and greater report these PLUS iowait, irq, softirq,
  * and steal */
-void determine_longstat(char *buf)
-{
+void determine_longstat(char *buf) {
 	unsigned long long iowait = 0;
 
 	KFLAG_SETOFF(KFLAG_IS_LONGSTAT);
@@ -786,9 +785,11 @@ void determine_longstat_file(void) {
 	static int rep = 0;
 	char buf[MAX_PROCSTAT_LINELEN + 1];
 
-	if ( not (stat_fp = open_file("/proc/stat", &rep))) return;
-	while ( not feof(stat_fp)) {
-		if (fgets(buf, MAX_PROCSTAT_LINELEN, stat_fp) == NULL) break;
+	if (not (stat_fp = open_file("/proc/stat", &rep)))
+		return;
+	while (not feof(stat_fp)) {
+		if (fgets(buf, MAX_PROCSTAT_LINELEN, stat_fp) == NULL)
+			break;
 		if (strncmp(buf, "cpu", 3) == 0) {
 			determine_longstat(buf);
 			break;
@@ -797,15 +798,14 @@ void determine_longstat_file(void) {
 	fclose(stat_fp);
 }
 
-void get_cpu_count(void)
-{
+void get_cpu_count(void) {
 	FILE *stat_fp;
 	static int rep = 0;
 	char buf[256];
 	char *str1, *str2, *token, *subtoken;
 	char *saveptr1, *saveptr2;
-	int subtoken1=-1;
-	int subtoken2=-1;
+	int subtoken1 = -1;
+	int subtoken2 = -1;
 
 	if (info.cpu_usage) {
 		return;
@@ -827,26 +827,28 @@ void get_cpu_count(void)
 		// "0,3-7".  I assume that chip is really an 8-core die with two cores
 		// disabled...  Presumably you could also get "0,3-4,6", and other
 		// combos too...
-		for (str1 = buf; ; str1 = NULL) {
+		for (str1 = buf;; str1 = NULL) {
 			token = strtok_r(str1, ",", &saveptr1);
-			if (token == NULL) break;
+			if (token == NULL)
+				break;
 			++info.cpu_count;
 
-			subtoken1=-1;
-			subtoken2=-1;
-			for (str2 = token; ; str2 = NULL) {
+			subtoken1 = -1;
+			subtoken2 = -1;
+			for (str2 = token;; str2 = NULL) {
 				subtoken = strtok_r(str2, "-", &saveptr2);
-				if (subtoken == NULL) break;
-				if(subtoken1 < 0)
-					subtoken1=atoi(subtoken);
+				if (subtoken == NULL)
+					break;
+				if (subtoken1 < 0)
+					subtoken1 = atoi(subtoken);
 				else
-					subtoken2=atoi(subtoken);
+					subtoken2 = atoi(subtoken);
 			}
-			if(subtoken2 > 0)
+			if (subtoken2 > 0)
 				info.cpu_count += subtoken2 - subtoken1;
 		}
 	}
-	info.cpu_usage = (float*)malloc((info.cpu_count + 1) * sizeof(float));
+	info.cpu_usage = (float*) malloc((info.cpu_count + 1) * sizeof(float));
 
 	fclose(stat_fp);
 }
@@ -854,8 +856,7 @@ void get_cpu_count(void)
 #define TMPL_LONGSTAT "%*s %llu %llu %llu %llu %llu %llu %llu %llu"
 #define TMPL_SHORTSTAT "%*s %llu %llu %llu %llu"
 
-int update_stat(void)
-{
+int update_stat(void) {
 	FILE *stat_fp;
 	static int rep = 0;
 	static struct cpu_info *cpu = NULL;
@@ -890,12 +891,12 @@ int update_stat(void)
 
 	if (!stat_template) {
 		stat_template =
-			KFLAG_ISSET(KFLAG_IS_LONGSTAT) ? TMPL_LONGSTAT : TMPL_SHORTSTAT;
+		KFLAG_ISSET(KFLAG_IS_LONGSTAT) ? TMPL_LONGSTAT : TMPL_SHORTSTAT;
 	}
 
 	if (!global_cpu) {
 		malloc_cpu_size = (info.cpu_count + 1) * sizeof(struct cpu_info);
-		cpu = (struct cpu_info *)malloc(malloc_cpu_size);
+		cpu = (struct cpu_info *) malloc(malloc_cpu_size);
 		memset(cpu, 0, malloc_cpu_size);
 		global_cpu = cpu;
 	}
@@ -919,7 +920,7 @@ int update_stat(void)
 		} else if (strncmp(buf, "cpu", 3) == 0) {
 			double delta;
 			if (isdigit(buf[3])) {
-				idx++;  //just increment here since the CPU index can skip numbers
+				idx++; //just increment here since the CPU index can skip numbers
 			} else {
 				idx = 0;
 			}
@@ -927,18 +928,18 @@ int update_stat(void)
 				continue;
 			}
 			sscanf(buf, stat_template, &(cpu[idx].cpu_user),
-				&(cpu[idx].cpu_nice), &(cpu[idx].cpu_system),
-				&(cpu[idx].cpu_idle), &(cpu[idx].cpu_iowait),
-				&(cpu[idx].cpu_irq), &(cpu[idx].cpu_softirq),
-				&(cpu[idx].cpu_steal));
+					&(cpu[idx].cpu_nice), &(cpu[idx].cpu_system),
+					&(cpu[idx].cpu_idle), &(cpu[idx].cpu_iowait),
+					&(cpu[idx].cpu_irq), &(cpu[idx].cpu_softirq),
+					&(cpu[idx].cpu_steal));
 
-			cpu[idx].cpu_total = cpu[idx].cpu_user + cpu[idx].cpu_nice +
-				cpu[idx].cpu_system + cpu[idx].cpu_idle +
-				cpu[idx].cpu_iowait + cpu[idx].cpu_irq +
-				cpu[idx].cpu_softirq + cpu[idx].cpu_steal;
+			cpu[idx].cpu_total = cpu[idx].cpu_user + cpu[idx].cpu_nice
+					+ cpu[idx].cpu_system + cpu[idx].cpu_idle
+					+ cpu[idx].cpu_iowait + cpu[idx].cpu_irq
+					+ cpu[idx].cpu_softirq + cpu[idx].cpu_steal;
 
-			cpu[idx].cpu_active_total = cpu[idx].cpu_total -
-				(cpu[idx].cpu_idle + cpu[idx].cpu_iowait);
+			cpu[idx].cpu_active_total = cpu[idx].cpu_total
+					- (cpu[idx].cpu_idle + cpu[idx].cpu_iowait);
 
 			delta = current_update_time - last_update_time;
 
@@ -950,8 +951,8 @@ int update_stat(void)
 			if (cur_total == 0.0) {
 				cpu[idx].cpu_val[0] = 1.0;
 			} else {
-				cpu[idx].cpu_val[0] = (cpu[idx].cpu_active_total -
-					cpu[idx].cpu_last_active_total) / cur_total;
+				cpu[idx].cpu_val[0] = (cpu[idx].cpu_active_total
+						- cpu[idx].cpu_last_active_total) / cur_total;
 			}
 			curtmp = 0;
 
@@ -978,14 +979,12 @@ int update_stat(void)
 	return 0;
 }
 
-int update_running_processes(void)
-{
+int update_running_processes(void) {
 	update_stat();
 	return 0;
 }
 
-int update_cpu_usage(void)
-{
+int update_cpu_usage(void) {
 	update_stat();
 	return 0;
 }
@@ -1010,8 +1009,7 @@ int fscanf_no_i18n(FILE *stream, const char *format, ...) {
 	return returncode;
 }
 
-int update_load_average(void)
-{
+int update_load_average(void) {
 #ifdef HAVE_GETLOADAVG
 	if (!prefer_proc) {
 		double v[3];
@@ -1031,7 +1029,7 @@ int update_load_average(void)
 			return 0;
 		}
 		if (fscanf_no_i18n(fp, "%f %f %f", &info.loadavg[0], &info.loadavg[1],
-		           &info.loadavg[2]) < 0)
+				&info.loadavg[2]) < 0)
 			info.loadavg[0] = info.loadavg[1] = info.loadavg[2] = 0.0;
 		fclose(fp);
 	}
@@ -1042,16 +1040,14 @@ int update_load_average(void)
 /***********************************************************/
 /***********************************************************/
 
-static int no_dots(const struct dirent *d)
-{
+static int no_dots(const struct dirent *d) {
 	if (d->d_name[0] == '.') {
 		return 0;
 	}
 	return 1;
 }
 
-static int get_first_file_in_a_directory(const char *dir, char *s, int *rep)
-{
+static int get_first_file_in_a_directory(const char *dir, char *s, int *rep) {
 	struct dirent **namelist;
 	int i, n;
 
@@ -1084,9 +1080,8 @@ static int get_first_file_in_a_directory(const char *dir, char *s, int *rep)
 	}
 }
 
-static int open_sysfs_sensor(const char *dir, const char *dev, const char *type, int n,
-		int *divisor, char *devtype)
-{
+static int open_sysfs_sensor(const char *dir, const char *dev, const char *type,
+		int n, int *divisor, char *devtype) {
 	char path[256];
 	char buf[256];
 	int fd;
@@ -1136,8 +1131,9 @@ static int open_sysfs_sensor(const char *dir, const char *dev, const char *type,
 		snprintf(path, 255, "%s%s/%s%d_input", dir, dev, type, n);
 		fd = open(path, O_RDONLY);
 		if (fd < 0) {
-			NORM_ERR("can't open '%s': %s\nplease check your device or remove this "
-					 "var from " PACKAGE_NAME, path, strerror(errno));
+			NORM_ERR(
+					"can't open '%s': %s\nplease check your device or remove this " "var from " PACKAGE_NAME,
+					path, strerror(errno));
 		}
 	}
 
@@ -1182,8 +1178,7 @@ static int open_sysfs_sensor(const char *dir, const char *dev, const char *type,
 	return fd;
 }
 
-static double get_sysfs_info(int *fd, int divisor, char *devtype, char *type)
-{
+static double get_sysfs_info(int *fd, int divisor, char *devtype, char *type) {
 	int val = 0;
 
 	if (*fd <= 0) {
@@ -1217,8 +1212,8 @@ static double get_sysfs_info(int *fd, int divisor, char *devtype, char *type)
 	/* My dirty hack for computing CPU value
 	 * Filedil, from forums.gentoo.org */
 	/* if (strstr(devtype, "temp1_input") != NULL) {
-		return -15.096 + 1.4893 * (val / 1000.0);
-	} */
+	 return -15.096 + 1.4893 * (val / 1000.0);
+	 } */
 
 	/* divide voltage and temperature by 1000 */
 	/* or if any other divisor is given, use that */
@@ -1246,27 +1241,46 @@ static double get_sysfs_info(int *fd, int divisor, char *devtype, char *type)
 		factor = 1.0; \
 		offset = 0.0; }
 
-static void parse_sysfs_sensor(struct text_object *obj, const char *arg, const char *path, const char *type)
-{
+static void parse_sysfs_sensor(struct text_object *obj, const char *arg,
+		const char *path, const char *type) {
 	char buf1[64], buf2[64];
 	float factor, offset;
 	int n, found = 0;
 	struct sysfs *sf;
 
-	if (sscanf(arg, "%63s %d %f %f", buf2, &n, &factor, &offset) == 4) found = 1; else HWMON_RESET();
-	if (!found && sscanf(arg, "%63s %63s %d %f %f", buf1, buf2, &n, &factor, &offset) == 5) found = 1; else if (!found) HWMON_RESET();
-	if (!found && sscanf(arg, "%63s %63s %d", buf1, buf2, &n) == 3) found = 1; else if (!found) HWMON_RESET();
-	if (!found && sscanf(arg, "%63s %d", buf2, &n) == 2) found = 1; else if (!found) HWMON_RESET();
+	if (sscanf(arg, "%63s %d %f %f", buf2, &n, &factor, &offset) == 4)
+		found = 1;
+	else
+		HWMON_RESET()
+	;
+	if (!found
+			&& sscanf(arg, "%63s %63s %d %f %f", buf1, buf2, &n, &factor,
+					&offset) == 5)
+		found = 1;
+	else if (!found)
+		HWMON_RESET()
+	;
+	if (!found && sscanf(arg, "%63s %63s %d", buf1, buf2, &n) == 3)
+		found = 1;
+	else if (!found)
+		HWMON_RESET()
+	;
+	if (!found && sscanf(arg, "%63s %d", buf2, &n) == 2)
+		found = 1;
+	else if (!found)
+		HWMON_RESET()
+	;
 
 	if (!found) {
 		obj_be_plain_text(obj, "fail");
 		return;
 	}
-	DBGP("parsed %s args: '%s' '%s' %d %f %f\n", type, buf1, buf2, n, factor, offset);
-	sf = (struct sysfs*)malloc(sizeof(struct sysfs));
+	DBGP("parsed %s args: '%s' '%s' %d %f %f\n", type, buf1, buf2, n, factor,
+			offset);
+	sf = (struct sysfs*) malloc(sizeof(struct sysfs));
 	memset(sf, 0, sizeof(struct sysfs));
-	sf->fd = open_sysfs_sensor(path, (*buf1) ? buf1 : 0, buf2, n,
-			&sf->arg, sf->devtype);
+	sf->fd = open_sysfs_sensor(path, (*buf1) ? buf1 : 0, buf2, n, &sf->arg,
+			sf->devtype);
 	strncpy(sf->type, buf2, 63);
 	sf->factor = factor;
 	sf->offset = offset;
@@ -1283,16 +1297,14 @@ PARSER_GENERATOR(i2c, "/sys/bus/i2c/devices/")
 PARSER_GENERATOR(hwmon, "/sys/class/hwmon/")
 PARSER_GENERATOR(platform, "/sys/bus/platform/devices/")
 
-void print_sysfs_sensor(struct text_object *obj, char *p, int p_max_size)
-{
+void print_sysfs_sensor(struct text_object *obj, char *p, int p_max_size) {
 	double r;
-	struct sysfs *sf = (struct sysfs *)obj->data.opaque;
+	struct sysfs *sf = (struct sysfs *) obj->data.opaque;
 
 	if (!sf || sf->fd < 0)
 		return;
 
-	r = get_sysfs_info(&sf->fd, sf->arg,
-			sf->devtype, sf->type);
+	r = get_sysfs_info(&sf->fd, sf->arg, sf->devtype, sf->type);
 
 	r = r * sf->factor + sf->offset;
 
@@ -1305,14 +1317,13 @@ void print_sysfs_sensor(struct text_object *obj, char *p, int p_max_size)
 	}
 }
 
-void free_sysfs_sensor(struct text_object *obj)
-{
-	struct sysfs *sf = (struct sysfs *)obj->data.opaque;
+void free_sysfs_sensor(struct text_object *obj) {
+	struct sysfs *sf = (struct sysfs *) obj->data.opaque;
 
 	if (!sf)
 		return;
 
-	if(sf->fd >= 0)
+	if (sf->fd >= 0)
 		close(sf->fd);
 	free_and_zero(obj->data.opaque);
 }
@@ -1322,8 +1333,7 @@ void free_sysfs_sensor(struct text_object *obj)
 
 /* return system frequency in MHz (use divisor=1) or GHz (use divisor=1000) */
 char get_freq(char *p_client_buffer, size_t client_buffer_size,
-		const char *p_format, int divisor, unsigned int cpu)
-{
+		const char *p_format, int divisor, unsigned int cpu) {
 	FILE *f;
 	static int rep = 0;
 	char frequency[32];
@@ -1339,7 +1349,7 @@ char get_freq(char *p_client_buffer, size_t client_buffer_size,
 		char current_freq_file[128];
 
 		snprintf(current_freq_file, 127, "%s/cpu%d/%s", CPUFREQ_PREFIX, cpu - 1,
-			CPUFREQ_POSTFIX);
+		CPUFREQ_POSTFIX);
 		f = fopen(current_freq_file, "r");
 		if (f) {
 			/* if there's a cpufreq /sys node, read the current frequency from
@@ -1350,7 +1360,7 @@ char get_freq(char *p_client_buffer, size_t client_buffer_size,
 			}
 			fclose(f);
 			snprintf(p_client_buffer, client_buffer_size, p_format,
-				(freq / 1000) / divisor);
+					(freq / 1000) / divisor);
 			return 1;
 		}
 	}
@@ -1370,11 +1380,11 @@ char get_freq(char *p_client_buffer, size_t client_buffer_size,
 		if (strncmp(s, "cpu MHz", 7) == 0 && cpu == 0) {
 #else
 #if defined(__alpha)
-		// different on alpha
-		if (strncmp(s, "cycle frequency [Hz]", 20) == 0 && cpu == 0) {
+			// different on alpha
+			if (strncmp(s, "cycle frequency [Hz]", 20) == 0 && cpu == 0) {
 #else
-		// this is different on ppc for some reason
-		if (strncmp(s, "clock", 5) == 0 && cpu == 0) {
+				// this is different on ppc for some reason
+				if (strncmp(s, "clock", 5) == 0 && cpu == 0) {
 #endif // defined(__alpha)
 #endif // defined(__i386) || defined(__x86_64)
 
@@ -1400,7 +1410,7 @@ char get_freq(char *p_client_buffer, size_t client_buffer_size,
 
 	fclose(f);
 	snprintf(p_client_buffer, client_buffer_size, p_format,
-		(float) freq / divisor);
+			(float) freq / divisor);
 	return 1;
 }
 
@@ -1408,20 +1418,19 @@ char get_freq(char *p_client_buffer, size_t client_buffer_size,
 
 /* /sys/devices/system/cpu/cpu0/cpufreq/scaling_voltages looks something
  * like this:
-# frequency voltage
-1800000 1340
-1600000 1292
-1400000 1100
-1200000 988
-1000000 1116
-800000 1004
-600000 988
+ # frequency voltage
+ 1800000 1340
+ 1600000 1292
+ 1400000 1100
+ 1200000 988
+ 1000000 1116
+ 800000 1004
+ 600000 988
  * Peter Tarjan (ptarjan@citromail.hu) */
 
 /* return cpu voltage in mV (use divisor=1) or V (use divisor=1000) */
 static char get_voltage(char *p_client_buffer, size_t client_buffer_size,
-		const char *p_format, int divisor, unsigned int cpu)
-{
+		const char *p_format, int divisor, unsigned int cpu) {
 	FILE *f;
 	char s[256];
 	int freq = 0;
@@ -1432,7 +1441,7 @@ static char get_voltage(char *p_client_buffer, size_t client_buffer_size,
 	/* build the voltage file name */
 	cpu--;
 	snprintf(current_freq_file, 127, "%s/cpu%d/%s", CPUFREQ_PREFIX, cpu,
-		CPUFREQ_POSTFIX);
+	CPUFREQ_POSTFIX);
 
 	if (!p_client_buffer || client_buffer_size <= 0 || !p_format
 			|| divisor <= 0) {
@@ -1448,7 +1457,8 @@ static char get_voltage(char *p_client_buffer, size_t client_buffer_size,
 		}
 		fclose(f);
 	} else {
-		fprintf(stderr, PACKAGE_NAME": Failed to access '%s' at ", current_freq_file);
+		fprintf(stderr, PACKAGE_NAME": Failed to access '%s' at ",
+				current_freq_file);
 		perror("get_voltage()");
 		if (f) {
 			fclose(f);
@@ -1457,7 +1467,7 @@ static char get_voltage(char *p_client_buffer, size_t client_buffer_size,
 	}
 
 	snprintf(current_freq_file, 127, "%s/cpu%d/%s", CPUFREQ_PREFIX, cpu,
-		CPUFREQ_VOLTAGE);
+	CPUFREQ_VOLTAGE);
 
 	/* use the current cpu frequency to find the corresponding voltage */
 	f = fopen(current_freq_file, "r");
@@ -1476,7 +1486,8 @@ static char get_voltage(char *p_client_buffer, size_t client_buffer_size,
 		}
 		fclose(f);
 	} else {
-		fprintf(stderr, PACKAGE_NAME": Failed to access '%s' at ", current_freq_file);
+		fprintf(stderr, PACKAGE_NAME": Failed to access '%s' at ",
+				current_freq_file);
 		perror("get_voltage()");
 		if (f) {
 			fclose(f);
@@ -1484,20 +1495,18 @@ static char get_voltage(char *p_client_buffer, size_t client_buffer_size,
 		return 0;
 	}
 	snprintf(p_client_buffer, client_buffer_size, p_format,
-		(float) voltage / divisor);
+			(float) voltage / divisor);
 	return 1;
 }
 
-void print_voltage_mv(struct text_object *obj, char *p, int p_max_size)
-{
+void print_voltage_mv(struct text_object *obj, char *p, int p_max_size) {
 	static int ok = 1;
 	if (ok) {
 		ok = get_voltage(p, p_max_size, "%.0f", 1, obj->data.i);
 	}
 }
 
-void print_voltage_v(struct text_object *obj, char *p, int p_max_size)
-{
+void print_voltage_v(struct text_object *obj, char *p, int p_max_size) {
 	static int ok = 1;
 	if (ok) {
 		ok = get_voltage(p, p_max_size, "%'.3f", 1000, obj->data.i);
@@ -1506,8 +1515,7 @@ void print_voltage_v(struct text_object *obj, char *p, int p_max_size)
 
 #define ACPI_FAN_DIR "/proc/acpi/fan/"
 
-void get_acpi_fan(char *p_client_buffer, size_t client_buffer_size)
-{
+void get_acpi_fan(char *p_client_buffer, size_t client_buffer_size) {
 	static int rep = 0;
 	char buf[256];
 	char buf2[256];
@@ -1528,7 +1536,7 @@ void get_acpi_fan(char *p_client_buffer, size_t client_buffer_size)
 	fp = open_file(buf2, &rep);
 	if (!fp) {
 		snprintf(p_client_buffer, client_buffer_size,
-			"can't open fan's state file");
+				"can't open fan's state file");
 		return;
 	}
 	memset(buf, 0, sizeof(buf));
@@ -1542,24 +1550,24 @@ void get_acpi_fan(char *p_client_buffer, size_t client_buffer_size)
 #define SYSFS_AC_ADAPTER_DIR "/sys/class/power_supply"
 #define ACPI_AC_ADAPTER_DIR "/proc/acpi/ac_adapter/"
 /* Linux 2.6.25 onwards ac adapter info is in
-   /sys/class/power_supply/AC/
-   On my system I get the following.
-     /sys/class/power_supply/AC/uevent:
-     PHYSDEVPATH=/devices/LNXSYSTM:00/device:00/PNP0A08:00/device:01/PNP0C09:00/ACPI0003:00
-     PHYSDEVBUS=acpi
-     PHYSDEVDRIVER=ac
-     POWER_SUPPLY_NAME=AC
-     POWER_SUPPLY_TYPE=Mains
-     POWER_SUPPLY_ONLINE=1
+ /sys/class/power_supply/AC/
+ On my system I get the following.
+ /sys/class/power_supply/AC/uevent:
+ PHYSDEVPATH=/devices/LNXSYSTM:00/device:00/PNP0A08:00/device:01/PNP0C09:00/ACPI0003:00
+ PHYSDEVBUS=acpi
+ PHYSDEVDRIVER=ac
+ POWER_SUPPLY_NAME=AC
+ POWER_SUPPLY_TYPE=Mains
+ POWER_SUPPLY_ONLINE=1
 
-   Update: it seems the folder name is hardware-dependent. We add an aditional adapter
-   argument, specifying the folder name.
+ Update: it seems the folder name is hardware-dependent. We add an aditional adapter
+ argument, specifying the folder name.
 
-   Update: on some systems it's /sys/class/power_supply/ADP1 instead of /sys/class/power_supply/AC
-*/
+ Update: on some systems it's /sys/class/power_supply/ADP1 instead of /sys/class/power_supply/AC
+ */
 
-void get_acpi_ac_adapter(char *p_client_buffer, size_t client_buffer_size, const char *adapter)
-{
+void get_acpi_ac_adapter(char *p_client_buffer, size_t client_buffer_size,
+		const char *adapter) {
 	static int rep = 0;
 
 	char buf[256];
@@ -1571,13 +1579,19 @@ void get_acpi_ac_adapter(char *p_client_buffer, size_t client_buffer_size, const
 		return;
 	}
 
-	if(adapter)
-		snprintf(buf2, sizeof(buf2), "%s/%s/uevent", SYSFS_AC_ADAPTER_DIR, adapter);
-	else{
+	if (adapter)
+		snprintf(buf2, sizeof(buf2), "%s/%s/uevent", SYSFS_AC_ADAPTER_DIR,
+				adapter);
+	else {
 		snprintf(buf2, sizeof(buf2), "%s/AC/uevent", SYSFS_AC_ADAPTER_DIR);
-		if(stat(buf2, &sb) == -1) snprintf(buf2, sizeof(buf2), "%s/ADP1/uevent", SYSFS_AC_ADAPTER_DIR);
+		if (stat(buf2, &sb) == -1)
+			snprintf(buf2, sizeof(buf2), "%s/ADP1/uevent",
+					SYSFS_AC_ADAPTER_DIR);
 	}
-	if(stat(buf2, &sb) == 0) fp = open_file(buf2, &rep); else fp = 0;
+	if (stat(buf2, &sb) == 0)
+		fp = open_file(buf2, &rep);
+	else
+		fp = 0;
 	if (fp) {
 		/* sysfs processing */
 		while (!feof(fp)) {
@@ -1587,8 +1601,8 @@ void get_acpi_ac_adapter(char *p_client_buffer, size_t client_buffer_size, const
 			if (strncmp(buf, "POWER_SUPPLY_ONLINE=", 20) == 0) {
 				int online = 0;
 				sscanf(buf, "POWER_SUPPLY_ONLINE=%d", &online);
-				snprintf(p_client_buffer, client_buffer_size,
-					 "%s-line", (online ? "on" : "off"));
+				snprintf(p_client_buffer, client_buffer_size, "%s-line",
+						(online ? "on" : "off"));
 				break;
 			}
 		}
@@ -1605,7 +1619,7 @@ void get_acpi_ac_adapter(char *p_client_buffer, size_t client_buffer_size, const
 		fp = open_file(buf2, &rep);
 		if (!fp) {
 			snprintf(p_client_buffer, client_buffer_size,
-				 "No ac adapter found.... where is it?");
+					"No ac adapter found.... where is it?");
 			return;
 		}
 		memset(buf, 0, sizeof(buf));
@@ -1618,24 +1632,23 @@ void get_acpi_ac_adapter(char *p_client_buffer, size_t client_buffer_size, const
 }
 
 /*
-/proc/acpi/thermal_zone/THRM/cooling_mode
-cooling mode:            active
-/proc/acpi/thermal_zone/THRM/polling_frequency
-<polling disabled>
-/proc/acpi/thermal_zone/THRM/state
-state:                   ok
-/proc/acpi/thermal_zone/THRM/temperature
-temperature:             45 C
-/proc/acpi/thermal_zone/THRM/trip_points
-critical (S5):           73 C
-passive:                 73 C: tc1=4 tc2=3 tsp=40 devices=0xcdf6e6c0
-*/
+ /proc/acpi/thermal_zone/THRM/cooling_mode
+ cooling mode:            active
+ /proc/acpi/thermal_zone/THRM/polling_frequency
+ <polling disabled>
+ /proc/acpi/thermal_zone/THRM/state
+ state:                   ok
+ /proc/acpi/thermal_zone/THRM/temperature
+ temperature:             45 C
+ /proc/acpi/thermal_zone/THRM/trip_points
+ critical (S5):           73 C
+ passive:                 73 C: tc1=4 tc2=3 tsp=40 devices=0xcdf6e6c0
+ */
 
 #define ACPI_THERMAL_ZONE_DEFAULT "thermal_zone0"
 #define ACPI_THERMAL_FORMAT "/sys/class/thermal/%s/temp"
 
-int open_acpi_temperature(const char *name)
-{
+int open_acpi_temperature(const char *name) {
 	char path[256];
 	int fd;
 
@@ -1659,8 +1672,7 @@ static double last_acpi_temp_time;
 //the maximum length of the string inside a ACPI_THERMAL_FORMAT file including the ending 0
 #define MAXTHERMZONELEN 6
 
-double get_acpi_temperature(int fd)
-{
+double get_acpi_temperature(int fd) {
 	if (fd <= 0) {
 		return 0;
 	}
@@ -1679,7 +1691,7 @@ double get_acpi_temperature(int fd)
 		char buf[MAXTHERMZONELEN];
 		int n;
 
-		n = read(fd, buf, MAXTHERMZONELEN-1);
+		n = read(fd, buf, MAXTHERMZONELEN - 1);
 		if (n < 0) {
 			NORM_ERR("can't read fd %d: %s", fd, strerror(errno));
 		} else {
@@ -1693,75 +1705,75 @@ double get_acpi_temperature(int fd)
 }
 
 /*
-hipo@lepakko hipo $ cat /proc/acpi/battery/BAT1/info
-present:                 yes
-design capacity:         4400 mAh
-last full capacity:      4064 mAh
-battery technology:      rechargeable
-design voltage:          14800 mV
-design capacity warning: 300 mAh
-design capacity low:     200 mAh
-capacity granularity 1:  32 mAh
-capacity granularity 2:  32 mAh
-model number:            02KT
-serial number:           16922
-battery type:            LION
-OEM info:                SANYO
-*/
+ hipo@lepakko hipo $ cat /proc/acpi/battery/BAT1/info
+ present:                 yes
+ design capacity:         4400 mAh
+ last full capacity:      4064 mAh
+ battery technology:      rechargeable
+ design voltage:          14800 mV
+ design capacity warning: 300 mAh
+ design capacity low:     200 mAh
+ capacity granularity 1:  32 mAh
+ capacity granularity 2:  32 mAh
+ model number:            02KT
+ serial number:           16922
+ battery type:            LION
+ OEM info:                SANYO
+ */
 
 /*
-hipo@lepakko conky $ cat /proc/acpi/battery/BAT1/state
-present:                 yes
-capacity state:          ok
-charging state:          unknown
-present rate:            0 mA
-remaining capacity:      4064 mAh
-present voltage:         16608 mV
-*/
+ hipo@lepakko conky $ cat /proc/acpi/battery/BAT1/state
+ present:                 yes
+ capacity state:          ok
+ charging state:          unknown
+ present rate:            0 mA
+ remaining capacity:      4064 mAh
+ present voltage:         16608 mV
+ */
 
 /*
-2213<@jupet�kellari��> jupet@lagi-unstable:~$ cat /proc/apm
-2213<@jupet�kellari��> 1.16 1.2 0x03 0x01 0xff 0x10 -1% -1 ?
-2213<@jupet�kellari��> (-1 ollee ei akkua kiinni, koska akku on p�yd�ll�)
-2214<@jupet�kellari��> jupet@lagi-unstable:~$ cat /proc/apm
-2214<@jupet�kellari��> 1.16 1.2 0x03 0x01 0x03 0x09 98% -1 ?
+ 2213<@jupet�kellari��> jupet@lagi-unstable:~$ cat /proc/apm
+ 2213<@jupet�kellari��> 1.16 1.2 0x03 0x01 0xff 0x10 -1% -1 ?
+ 2213<@jupet�kellari��> (-1 ollee ei akkua kiinni, koska akku on p�yd�ll�)
+ 2214<@jupet�kellari��> jupet@lagi-unstable:~$ cat /proc/apm
+ 2214<@jupet�kellari��> 1.16 1.2 0x03 0x01 0x03 0x09 98% -1 ?
 
-2238<@jupet�kellari��> 1.16 1.2 0x03 0x00 0x00 0x01 100% -1 ? ilman verkkovirtaa
-2239<@jupet�kellari��> 1.16 1.2 0x03 0x01 0x00 0x01 99% -1 ? verkkovirralla
+ 2238<@jupet�kellari��> 1.16 1.2 0x03 0x00 0x00 0x01 100% -1 ? ilman verkkovirtaa
+ 2239<@jupet�kellari��> 1.16 1.2 0x03 0x01 0x00 0x01 99% -1 ? verkkovirralla
 
-2240<@jupet�kellari��> 1.16 1.2 0x03 0x01 0x03 0x09 100% -1 ? verkkovirralla ja monitori p��ll�
-2241<@jupet�kellari��> 1.16 1.2 0x03 0x00 0x00 0x01 99% -1 ? monitori p��ll� mutta ilman verkkovirtaa
-*/
+ 2240<@jupet�kellari��> 1.16 1.2 0x03 0x01 0x03 0x09 100% -1 ? verkkovirralla ja monitori p��ll�
+ 2241<@jupet�kellari��> 1.16 1.2 0x03 0x00 0x00 0x01 99% -1 ? monitori p��ll� mutta ilman verkkovirtaa
+ */
 
 /* Kapil Hari Paranjape <kapil@imsc.res.in>
-  Linux 2.6.24 onwards battery info is in
-  /sys/class/power_supply/BAT0/
-  On my system I get the following.
-	/sys/class/power_supply/BAT0/uevent:
-	PHYSDEVPATH=/devices/LNXSYSTM:00/device:00/PNP0A03:00/device:01/PNP0C09:00/PNP0C0A:00
-	PHYSDEVBUS=acpi
-	PHYSDEVDRIVER=battery
-	POWER_SUPPLY_NAME=BAT0
-	POWER_SUPPLY_TYPE=Battery
-	POWER_SUPPLY_STATUS=Discharging
-	POWER_SUPPLY_PRESENT=1
-	POWER_SUPPLY_TECHNOLOGY=Li-ion
-	POWER_SUPPLY_VOLTAGE_MIN_DESIGN=10800000
-	POWER_SUPPLY_VOLTAGE_NOW=10780000
-	POWER_SUPPLY_CURRENT_NOW=13970000
-	POWER_SUPPLY_ENERGY_FULL_DESIGN=47510000
-	POWER_SUPPLY_ENERGY_FULL=27370000
-	POWER_SUPPLY_ENERGY_NOW=11810000
-	POWER_SUPPLY_MODEL_NAME=IBM-92P1060
-	POWER_SUPPLY_MANUFACTURER=Panasonic
-  On some systems POWER_SUPPLY_ENERGY_* is replaced by POWER_SUPPLY_CHARGE_*
-*/
+ Linux 2.6.24 onwards battery info is in
+ /sys/class/power_supply/BAT0/
+ On my system I get the following.
+ /sys/class/power_supply/BAT0/uevent:
+ PHYSDEVPATH=/devices/LNXSYSTM:00/device:00/PNP0A03:00/device:01/PNP0C09:00/PNP0C0A:00
+ PHYSDEVBUS=acpi
+ PHYSDEVDRIVER=battery
+ POWER_SUPPLY_NAME=BAT0
+ POWER_SUPPLY_TYPE=Battery
+ POWER_SUPPLY_STATUS=Discharging
+ POWER_SUPPLY_PRESENT=1
+ POWER_SUPPLY_TECHNOLOGY=Li-ion
+ POWER_SUPPLY_VOLTAGE_MIN_DESIGN=10800000
+ POWER_SUPPLY_VOLTAGE_NOW=10780000
+ POWER_SUPPLY_CURRENT_NOW=13970000
+ POWER_SUPPLY_ENERGY_FULL_DESIGN=47510000
+ POWER_SUPPLY_ENERGY_FULL=27370000
+ POWER_SUPPLY_ENERGY_NOW=11810000
+ POWER_SUPPLY_MODEL_NAME=IBM-92P1060
+ POWER_SUPPLY_MANUFACTURER=Panasonic
+ On some systems POWER_SUPPLY_ENERGY_* is replaced by POWER_SUPPLY_CHARGE_*
+ */
 
 /* Tiago Marques Vale <tiagomarquesvale@gmail.com>
-  Regarding the comment above, since kernel 2.6.36.1 I have
-  POWER_SUPPLY_POWER_NOW instead of POWER_SUPPLY_CURRENT_NOW
-  See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=532000
-*/
+ Regarding the comment above, since kernel 2.6.36.1 I have
+ POWER_SUPPLY_POWER_NOW instead of POWER_SUPPLY_CURRENT_NOW
+ See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=532000
+ */
 
 #define SYSFS_BATTERY_BASE_PATH "/sys/class/power_supply"
 #define ACPI_BATTERY_BASE_PATH "/proc/acpi/battery"
@@ -1788,8 +1800,7 @@ static double last_battery_time[MAX_BATTERY_COUNT];
 static int last_battery_perct[MAX_BATTERY_COUNT];
 static double last_battery_perct_time[MAX_BATTERY_COUNT];
 
-void init_batteries(void)
-{
+void init_batteries(void) {
 	int idx;
 
 	if (batteries_initialized) {
@@ -1804,8 +1815,7 @@ void init_batteries(void)
 	batteries_initialized = 1;
 }
 
-int get_battery_idx(const char *bat)
-{
+int get_battery_idx(const char *bat) {
 	int idx;
 
 	for (idx = 0; idx < MAX_BATTERY_COUNT; idx++) {
@@ -1824,8 +1834,8 @@ int get_battery_idx(const char *bat)
 
 void set_return_value(char *buffer, unsigned int n, int item, int idx);
 
-void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
-{
+void get_battery_stuff(char *buffer, unsigned int n, const char *bat,
+		int item) {
 	static int idx, rep = 0, rep1 = 0, rep2 = 0;
 	char acpi_path[128];
 	char sysfs_path[128];
@@ -1850,11 +1860,13 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 
 	/* first try SYSFS if that fails try ACPI */
 
-	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL && apm_bat_fp[idx] == NULL) {
+	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL
+			&& apm_bat_fp[idx] == NULL) {
 		sysfs_bat_fp[idx] = open_file(sysfs_path, &rep);
 	}
 
-	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL && apm_bat_fp[idx] == NULL) {
+	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL
+			&& apm_bat_fp[idx] == NULL) {
 		acpi_bat_fp[idx] = open_file(acpi_path, &rep1);
 	}
 
@@ -1873,11 +1885,11 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 				break;
 
 			/* let's just hope units are ok */
-			if (strncmp (buf, "POWER_SUPPLY_PRESENT=1", 22) == 0)
+			if (strncmp(buf, "POWER_SUPPLY_PRESENT=1", 22) == 0)
 				strcpy(present, "yes");
-			else if (strncmp (buf, "POWER_SUPPLY_PRESENT=0", 22) == 0)
+			else if (strncmp(buf, "POWER_SUPPLY_PRESENT=0", 22) == 0)
 				strcpy(present, "no");
-			else if (strncmp (buf, "POWER_SUPPLY_STATUS=", 20) == 0)
+			else if (strncmp(buf, "POWER_SUPPLY_STATUS=", 20) == 0)
 				sscanf(buf, "POWER_SUPPLY_STATUS=%63s", charging_state);
 			/* present_rate is not the same as the current flowing now but it
 			 * is the same value which was used in the past. so we continue the
@@ -1889,11 +1901,13 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 			else if (strncmp(buf, "POWER_SUPPLY_ENERGY_NOW=", 24) == 0)
 				sscanf(buf, "POWER_SUPPLY_ENERGY_NOW=%d", &remaining_capacity);
 			else if (strncmp(buf, "POWER_SUPPLY_ENERGY_FULL=", 25) == 0)
-				sscanf(buf, "POWER_SUPPLY_ENERGY_FULL=%d", &acpi_last_full[idx]);
+				sscanf(buf, "POWER_SUPPLY_ENERGY_FULL=%d",
+						&acpi_last_full[idx]);
 			else if (strncmp(buf, "POWER_SUPPLY_CHARGE_NOW=", 24) == 0)
 				sscanf(buf, "POWER_SUPPLY_CHARGE_NOW=%d", &remaining_capacity);
 			else if (strncmp(buf, "POWER_SUPPLY_CHARGE_FULL=", 25) == 0)
-				sscanf(buf, "POWER_SUPPLY_CHARGE_FULL=%d", &acpi_last_full[idx]);
+				sscanf(buf, "POWER_SUPPLY_CHARGE_FULL=%d",
+						&acpi_last_full[idx]);
 		}
 
 		fclose(sysfs_bat_fp[idx]);
@@ -1901,7 +1915,7 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 
 		/* Hellf[i]re notes that remaining capacity can exceed acpi_last_full */
 		if (remaining_capacity > acpi_last_full[idx])
-			acpi_last_full[idx] = remaining_capacity;  /* normalize to 100% */
+			acpi_last_full[idx] = remaining_capacity; /* normalize to 100% */
 
 		/* not present */
 		if (strcmp(present, "No") == 0) {
@@ -1911,18 +1925,25 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 		else if (strcmp(charging_state, "Charging") == 0) {
 			if (acpi_last_full[idx] != 0 && present_rate > 0) {
 				/* e.g. charging 75% */
-				snprintf(last_battery_str[idx], sizeof(last_battery_str[idx])-1, "charging %i%%",
-						(int) (((float) remaining_capacity / acpi_last_full[idx]) * 100 ));
+				snprintf(last_battery_str[idx],
+						sizeof(last_battery_str[idx]) - 1, "charging %i%%",
+						(int) (((float) remaining_capacity / acpi_last_full[idx])
+								* 100));
 				/* e.g. 2h 37m */
-				format_seconds(last_battery_time_str[idx], sizeof(last_battery_time_str[idx])-1,
-						(long) (((float)(acpi_last_full[idx] - remaining_capacity) / present_rate) * 3600));
+				format_seconds(last_battery_time_str[idx],
+						sizeof(last_battery_time_str[idx]) - 1,
+						(long) (((float) (acpi_last_full[idx]
+								- remaining_capacity) / present_rate) * 3600));
 			} else if (acpi_last_full[idx] != 0 && present_rate <= 0) {
-				snprintf(last_battery_str[idx], sizeof(last_battery_str[idx])-1, "charging %d%%",
-						(int) (((float)remaining_capacity / acpi_last_full[idx]) * 100));
+				snprintf(last_battery_str[idx],
+						sizeof(last_battery_str[idx]) - 1, "charging %d%%",
+						(int) (((float) remaining_capacity / acpi_last_full[idx])
+								* 100));
 				snprintf(last_battery_time_str[idx],
 						sizeof(last_battery_time_str[idx]) - 1, "unknown");
 			} else {
-				strncpy(last_battery_str[idx], "charging", sizeof(last_battery_str[idx])-1);
+				strncpy(last_battery_str[idx], "charging",
+						sizeof(last_battery_str[idx]) - 1);
 				snprintf(last_battery_time_str[idx],
 						sizeof(last_battery_time_str[idx]) - 1, "unknown");
 			}
@@ -1931,40 +1952,48 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 		else if (strncmp(charging_state, "Discharging", 64) == 0) {
 			if (present_rate > 0) {
 				/* e.g. discharging 35% */
-				snprintf(last_battery_str[idx], sizeof(last_battery_str[idx])-1, "discharging %i%%",
-					(int) (((float) remaining_capacity / acpi_last_full[idx]) * 100 ));
+				snprintf(last_battery_str[idx],
+						sizeof(last_battery_str[idx]) - 1, "discharging %i%%",
+						(int) (((float) remaining_capacity / acpi_last_full[idx])
+								* 100));
 				/* e.g. 1h 12m */
-				format_seconds(last_battery_time_str[idx], sizeof(last_battery_time_str[idx])-1,
-					      (long) (((float) remaining_capacity / present_rate) * 3600));
+				format_seconds(last_battery_time_str[idx],
+						sizeof(last_battery_time_str[idx]) - 1,
+						(long) (((float) remaining_capacity / present_rate)
+								* 3600));
 			} else if (present_rate == 0) { /* Thanks to Nexox for this one */
-				snprintf(last_battery_str[idx], sizeof(last_battery_str[idx])-1, "full");
+				snprintf(last_battery_str[idx],
+						sizeof(last_battery_str[idx]) - 1, "full");
 				snprintf(last_battery_time_str[idx],
-					sizeof(last_battery_time_str[idx]) - 1, "unknown");
+						sizeof(last_battery_time_str[idx]) - 1, "unknown");
 			} else {
-				snprintf(last_battery_str[idx], sizeof(last_battery_str[idx])-1,
-					"discharging %d%%",
-					(int) (((float)remaining_capacity / acpi_last_full[idx]) * 100));
+				snprintf(last_battery_str[idx],
+						sizeof(last_battery_str[idx]) - 1, "discharging %d%%",
+						(int) (((float) remaining_capacity / acpi_last_full[idx])
+								* 100));
 				snprintf(last_battery_time_str[idx],
-					sizeof(last_battery_time_str[idx]) - 1, "unknown");
+						sizeof(last_battery_time_str[idx]) - 1, "unknown");
 			}
 		}
 		/* charged */
 		/* thanks to Lukas Zapletal <lzap@seznam.cz> */
-		else if (strncmp(charging_state, "Charged", 64) == 0 || strncmp(charging_state, "Full", 64) == 0) {
-				/* Below happens with the second battery on my X40,
-				 * when the second one is empty and the first one
-				 * being charged. */
-				if (remaining_capacity == 0)
-					strcpy(last_battery_str[idx], "empty");
-				else
-					strcpy(last_battery_str[idx], "charged");
+		else if (strncmp(charging_state, "Charged", 64) == 0
+				|| strncmp(charging_state, "Full", 64) == 0) {
+			/* Below happens with the second battery on my X40,
+			 * when the second one is empty and the first one
+			 * being charged. */
+			if (remaining_capacity == 0)
+				strcpy(last_battery_str[idx], "empty");
+			else
+				strcpy(last_battery_str[idx], "charged");
 		}
 		/* unknown, probably full / AC */
 		else {
 			if (acpi_last_full[idx] != 0
-			    && remaining_capacity != acpi_last_full[idx])
+					&& remaining_capacity != acpi_last_full[idx])
 				snprintf(last_battery_str[idx], 64, "unknown %d%%",
-					(int) (((float)remaining_capacity / acpi_last_full[idx]) * 100));
+						(int) (((float) remaining_capacity / acpi_last_full[idx])
+								* 100));
 			else
 				strncpy(last_battery_str[idx], "not present", 64);
 		}
@@ -1991,7 +2020,7 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 						break;
 					}
 					if (sscanf(b, "last full capacity: %d",
-								&acpi_last_full[idx]) != 0) {
+							&acpi_last_full[idx]) != 0) {
 						break;
 					}
 				}
@@ -2041,8 +2070,8 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 				/* e.g. 2h 37m */
 				format_seconds(last_battery_time_str[idx],
 						sizeof(last_battery_time_str[idx]) - 1,
-						(long) (((acpi_last_full[idx] - remaining_capacity) *
-								3600) / present_rate));
+						(long) (((acpi_last_full[idx] - remaining_capacity)
+								* 3600) / present_rate));
 			} else if (acpi_last_full[idx] != 0 && present_rate <= 0) {
 				snprintf(last_battery_str[idx],
 						sizeof(last_battery_str[idx]) - 1, "charging %d%%",
@@ -2066,7 +2095,7 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 				format_seconds(last_battery_time_str[idx],
 						sizeof(last_battery_time_str[idx]) - 1,
 						(long) ((remaining_capacity * 3600) / present_rate));
-			} else if (present_rate == 0) {	/* Thanks to Nexox for this one */
+			} else if (present_rate == 0) { /* Thanks to Nexox for this one */
 				snprintf(last_battery_str[idx],
 						sizeof(last_battery_str[idx]) - 1, "charged");
 				snprintf(last_battery_time_str[idx],
@@ -2113,21 +2142,21 @@ void get_battery_stuff(char *buffer, unsigned int n, const char *bat, int item)
 			int life;
 
 			if (fscanf(apm_bat_fp[idx], "%*s %*s %*x %x   %x       %x     %d%%",
-			           &ac, &status, &flag, &life) <= 0)
+					&ac, &status, &flag, &life) <= 0)
 				goto read_bat_fp_end;
 
 			if (life == -1) {
 				/* could check now that there is ac */
 				snprintf(last_battery_str[idx], 64, "not present");
 
-			/* could check that status == 3 here? */
+				/* could check that status == 3 here? */
 			} else if (ac && life != 100) {
 				snprintf(last_battery_str[idx], 64, "charging %d%%", life);
 			} else {
 				snprintf(last_battery_str[idx], 64, "%d%%", life);
 			}
 
-read_bat_fp_end:
+			read_bat_fp_end:
 			/* it seemed to buffer it so file must be closed (or could use
 			 * syscalls directly but I don't feel like coding it now) */
 			fclose(apm_bat_fp[idx]);
@@ -2137,22 +2166,20 @@ read_bat_fp_end:
 	set_return_value(buffer, n, item, idx);
 }
 
-void set_return_value(char *buffer, unsigned int n, int item, int idx)
-{
+void set_return_value(char *buffer, unsigned int n, int item, int idx) {
 	switch (item) {
-		case BATTERY_STATUS:
-			snprintf(buffer, n, "%s", last_battery_str[idx]);
-			break;
-		case BATTERY_TIME:
-			snprintf(buffer, n, "%s", last_battery_time_str[idx]);
-			break;
-		default:
-			break;
+	case BATTERY_STATUS:
+		snprintf(buffer, n, "%s", last_battery_str[idx]);
+		break;
+	case BATTERY_TIME:
+		snprintf(buffer, n, "%s", last_battery_time_str[idx]);
+		break;
+	default:
+		break;
 	}
 }
 
-void get_battery_short_status(char *buffer, unsigned int n, const char *bat)
-{
+void get_battery_short_status(char *buffer, unsigned int n, const char *bat) {
 	get_battery_stuff(buffer, n, bat, BATTERY_STATUS);
 	if (0 == strncmp("charging", buffer, 8)) {
 		buffer[0] = 'C';
@@ -2176,8 +2203,7 @@ void get_battery_short_status(char *buffer, unsigned int n, const char *bat)
 	// Otherwise, don't shorten.
 }
 
-int _get_battery_perct(const char *bat)
-{
+int _get_battery_perct(const char *bat) {
 	static int rep = 0;
 	int idx;
 	char acpi_path[128];
@@ -2197,12 +2223,14 @@ int _get_battery_perct(const char *bat)
 
 	/* Only check for SYSFS or ACPI */
 
-	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL && apm_bat_fp[idx] == NULL) {
+	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL
+			&& apm_bat_fp[idx] == NULL) {
 		sysfs_bat_fp[idx] = open_file(sysfs_path, &rep);
 		rep = 0;
 	}
 
-	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL && apm_bat_fp[idx] == NULL) {
+	if (sysfs_bat_fp[idx] == NULL && acpi_bat_fp[idx] == NULL
+			&& apm_bat_fp[idx] == NULL) {
 		acpi_bat_fp[idx] = open_file(acpi_path, &rep);
 	}
 
@@ -2215,12 +2243,14 @@ int _get_battery_perct(const char *bat)
 
 			if (strncmp(buf, "POWER_SUPPLY_CHARGE_NOW=", 24) == 0) {
 				sscanf(buf, "POWER_SUPPLY_CHARGE_NOW=%d", &remaining_capacity);
-			} else if (strncmp(buf, "POWER_SUPPLY_CHARGE_FULL=",25) == 0) {
-				sscanf(buf, "POWER_SUPPLY_CHARGE_FULL=%d", &acpi_design_capacity[idx]);
+			} else if (strncmp(buf, "POWER_SUPPLY_CHARGE_FULL=", 25) == 0) {
+				sscanf(buf, "POWER_SUPPLY_CHARGE_FULL=%d",
+						&acpi_design_capacity[idx]);
 			} else if (strncmp(buf, "POWER_SUPPLY_ENERGY_NOW=", 24) == 0) {
 				sscanf(buf, "POWER_SUPPLY_ENERGY_NOW=%d", &remaining_capacity);
-			} else if (strncmp(buf, "POWER_SUPPLY_ENERGY_FULL=",25) == 0) {
-				sscanf(buf, "POWER_SUPPLY_ENERGY_FULL=%d", &acpi_design_capacity[idx]);
+			} else if (strncmp(buf, "POWER_SUPPLY_ENERGY_FULL=", 25) == 0) {
+				sscanf(buf, "POWER_SUPPLY_ENERGY_FULL=%d",
+						&acpi_design_capacity[idx]);
 			}
 		}
 
@@ -2245,7 +2275,7 @@ int _get_battery_perct(const char *bat)
 						break;
 					}
 					if (sscanf(b, "last full capacity: %d",
-								&acpi_design_capacity[idx]) != 0) {
+							&acpi_design_capacity[idx]) != 0) {
 						break;
 					}
 				}
@@ -2271,15 +2301,16 @@ int _get_battery_perct(const char *bat)
 		return 0;
 	}
 	/* compute the battery percentage */
-	last_battery_perct[idx] =
-		(int) (((float) remaining_capacity / acpi_design_capacity[idx]) * 100);
-	if (last_battery_perct[idx] > 100) last_battery_perct[idx] = 100;
+	last_battery_perct[idx] = (int) (((float) remaining_capacity
+			/ acpi_design_capacity[idx]) * 100);
+	if (last_battery_perct[idx] > 100)
+		last_battery_perct[idx] = 100;
 	return last_battery_perct[idx];
 }
 
-int get_battery_perct(const char *bat)
-{
-	int idx, n = 0, total_capacity = 0, remaining_capacity;;
+int get_battery_perct(const char *bat) {
+	int idx, n = 0, total_capacity = 0, remaining_capacity;
+	;
 #define BATTERY_LEN 8
 	char battery[BATTERY_LEN];
 
@@ -2306,8 +2337,7 @@ int get_battery_perct(const char *bat)
 	}
 }
 
-double get_battery_perct_bar(struct text_object *obj)
-{
+double get_battery_perct_bar(struct text_object *obj) {
 	int idx;
 
 	get_battery_perct(obj->data.s);
@@ -2316,19 +2346,19 @@ double get_battery_perct_bar(struct text_object *obj)
 }
 
 /* On Apple powerbook and ibook:
-$ cat /proc/pmu/battery_0
-flags      : 00000013
-charge     : 3623
-max_charge : 3720
-current    : 388
-voltage    : 16787
-time rem.  : 900
-$ cat /proc/pmu/info
-PMU driver version     : 2
-PMU firmware version   : 0c
-AC Power               : 1
-Battery count          : 1
-*/
+ $ cat /proc/pmu/battery_0
+ flags      : 00000013
+ charge     : 3623
+ max_charge : 3720
+ current    : 388
+ voltage    : 16787
+ time rem.  : 900
+ $ cat /proc/pmu/info
+ PMU driver version     : 2
+ PMU firmware version   : 0c
+ AC Power               : 1
+ Battery count          : 1
+ */
 
 /* defines as in <linux/pmu.h> */
 #define PMU_BATT_PRESENT		0x00000001
@@ -2340,8 +2370,7 @@ static char pb_battery_info[3][32];
 static double pb_battery_info_update;
 
 #define PMU_PATH "/proc/pmu"
-void get_powerbook_batt_info(struct text_object *obj, char *buffer, int n)
-{
+void get_powerbook_batt_info(struct text_object *obj, char *buffer, int n) {
 	static int rep = 0;
 	const char *batt_path = PMU_PATH "/battery_0";
 	const char *info_path = PMU_PATH "/info";
@@ -2405,40 +2434,44 @@ void get_powerbook_batt_info(struct text_object *obj, char *buffer, int n)
 	}
 	/* update status string */
 	if ((ac && !(flags & PMU_BATT_PRESENT))) {
-		strncpy(pb_battery_info[PB_BATT_STATUS], "AC", sizeof(pb_battery_info[PB_BATT_STATUS]));
+		strncpy(pb_battery_info[PB_BATT_STATUS], "AC",
+				sizeof(pb_battery_info[PB_BATT_STATUS]));
 	} else if (ac && (flags & PMU_BATT_PRESENT)
 			&& !(flags & PMU_BATT_CHARGING)) {
-		strncpy(pb_battery_info[PB_BATT_STATUS], "charged", sizeof(pb_battery_info[PB_BATT_STATUS]));
+		strncpy(pb_battery_info[PB_BATT_STATUS], "charged",
+				sizeof(pb_battery_info[PB_BATT_STATUS]));
 	} else if ((flags & PMU_BATT_PRESENT) && (flags & PMU_BATT_CHARGING)) {
-		strncpy(pb_battery_info[PB_BATT_STATUS], "charging", sizeof(pb_battery_info[PB_BATT_STATUS]));
+		strncpy(pb_battery_info[PB_BATT_STATUS], "charging",
+				sizeof(pb_battery_info[PB_BATT_STATUS]));
 	} else {
-		strncpy(pb_battery_info[PB_BATT_STATUS], "discharging", sizeof(pb_battery_info[PB_BATT_STATUS]));
+		strncpy(pb_battery_info[PB_BATT_STATUS], "discharging",
+				sizeof(pb_battery_info[PB_BATT_STATUS]));
 	}
 
 	/* update percentage string */
 	if (timeval == 0 && ac && (flags & PMU_BATT_PRESENT)
 			&& !(flags & PMU_BATT_CHARGING)) {
 		snprintf(pb_battery_info[PB_BATT_PERCENT],
-			sizeof(pb_battery_info[PB_BATT_PERCENT]), "100%%");
+				sizeof(pb_battery_info[PB_BATT_PERCENT]), "100%%");
 	} else if (timeval == 0) {
 		snprintf(pb_battery_info[PB_BATT_PERCENT],
-			sizeof(pb_battery_info[PB_BATT_PERCENT]), "unknown");
+				sizeof(pb_battery_info[PB_BATT_PERCENT]), "unknown");
 	} else {
 		snprintf(pb_battery_info[PB_BATT_PERCENT],
-			sizeof(pb_battery_info[PB_BATT_PERCENT]), "%d%%",
-			(charge * 100) / max_charge);
+				sizeof(pb_battery_info[PB_BATT_PERCENT]), "%d%%",
+				(charge * 100) / max_charge);
 	}
 
 	/* update time string */
-	if (timeval == 0) {			/* fully charged or battery not present */
+	if (timeval == 0) { /* fully charged or battery not present */
 		snprintf(pb_battery_info[PB_BATT_TIME],
-			sizeof(pb_battery_info[PB_BATT_TIME]), "unknown");
-	} else if (timeval < 60 * 60) {	/* don't show secs */
+				sizeof(pb_battery_info[PB_BATT_TIME]), "unknown");
+	} else if (timeval < 60 * 60) { /* don't show secs */
 		format_seconds_short(pb_battery_info[PB_BATT_TIME],
-			sizeof(pb_battery_info[PB_BATT_TIME]), timeval);
+				sizeof(pb_battery_info[PB_BATT_TIME]), timeval);
 	} else {
 		format_seconds(pb_battery_info[PB_BATT_TIME],
-			sizeof(pb_battery_info[PB_BATT_TIME]), timeval);
+				sizeof(pb_battery_info[PB_BATT_TIME]), timeval);
 	}
 
 	snprintf(buffer, n, "%s", pb_battery_info[obj->data.i]);
@@ -2446,8 +2479,7 @@ void get_powerbook_batt_info(struct text_object *obj, char *buffer, int n)
 
 #define ENTROPY_AVAIL_PATH "/proc/sys/kernel/random/entropy_avail"
 
-int get_entropy_avail(unsigned int *val)
-{
+int get_entropy_avail(unsigned int *val) {
 	static int rep = 0;
 	FILE *fp;
 
@@ -2463,8 +2495,7 @@ int get_entropy_avail(unsigned int *val)
 
 #define ENTROPY_POOLSIZE_PATH "/proc/sys/kernel/random/poolsize"
 
-int get_entropy_poolsize(unsigned int *val)
-{
+int get_entropy_poolsize(unsigned int *val) {
 	static int rep = 0;
 	FILE *fp;
 
@@ -2478,8 +2509,8 @@ int get_entropy_poolsize(unsigned int *val)
 	return 0;
 }
 
-void print_disk_protect_queue(struct text_object *obj, char *p, int p_max_size)
-{
+void print_disk_protect_queue(struct text_object *obj, char *p,
+		int p_max_size) {
 	FILE *fp;
 	char path[128];
 	int state;
@@ -2504,14 +2535,13 @@ void print_disk_protect_queue(struct text_object *obj, char *p, int p_max_size)
 std::unordered_map<std::string, bool> dev_list;
 
 /* Same as sf #2942117 but memoized using a linked list */
-int is_disk(char *dev)
-{
+int is_disk(char *dev) {
 	std::string orig(dev);
 	std::string syspath("/sys/block/");
 	char *slash;
 
 	auto i = dev_list.find(orig);
-	if(i != dev_list.end())
+	if (i != dev_list.end())
 		return i->second;
 
 	while ((slash = strchr(dev, '/')))
@@ -2521,8 +2551,7 @@ int is_disk(char *dev)
 	return dev_list[orig] = !(access(syspath.c_str(), F_OK));
 }
 
-int update_diskio(void)
-{
+int update_diskio(void) {
 	FILE *fp;
 	static int rep = 0;
 	char buf[512], devbuf[64];
@@ -2544,22 +2573,22 @@ int update_diskio(void)
 	 * and floppies, and sum them up */
 	while (fgets(buf, 512, fp)) {
 		col_count = sscanf(buf, "%u %u %s %*u %*u %u %*u %*u %*u %u", &major,
-			&minor, devbuf, &reads, &writes);
+				&minor, devbuf, &reads, &writes);
 		/* ignore subdevices (they have only 3 matching entries in their line)
 		 * and virtual devices (LVM, network block devices, RAM disks, Loopback)
 		 *
 		 * XXX: ignore devices which are part of a SW RAID (MD_MAJOR) */
-		if (col_count == 5 && major != LVM_BLK_MAJOR && major != NBD_MAJOR
-				&& major != RAMDISK_MAJOR && major != LOOP_MAJOR
-				&& major != DM_MAJOR) {
+		if (col_count == 5&& major != LVM_BLK_MAJOR && major != NBD_MAJOR
+		&& major != RAMDISK_MAJOR && major != LOOP_MAJOR
+		&& major != DM_MAJOR) {
 			/* check needed for kernel >= 2.6.31, see sf #2942117 */
 			if (is_disk(devbuf)) {
 				total_reads += reads;
 				total_writes += writes;
 			}
 		} else {
-			col_count = sscanf(buf, "%u %u %s %*u %u %*u %u",
-				&major, &minor, devbuf, &reads, &writes);
+			col_count = sscanf(buf, "%u %u %s %*u %u %*u %u", &major, &minor,
+					devbuf, &reads, &writes);
 			if (col_count != 5) {
 				continue;
 			}
@@ -2576,33 +2605,33 @@ int update_diskio(void)
 	return 0;
 }
 
-void print_distribution(struct text_object *obj, char *p, int p_max_size)
-{
-	(void)obj;
+void print_distribution(struct text_object *obj, char *p, int p_max_size) {
+	(void) obj;
 	int i, bytes_read;
 	char* buf;
 	struct stat sb;
 
-	if(stat("/etc/arch-release", &sb) == 0) {
+	if (stat("/etc/arch-release", &sb) == 0) {
 		snprintf(p, p_max_size, "Arch Linux");
 		return;
 	}
 	snprintf(p, p_max_size, "Unknown");
 	buf = readfile("/proc/version", &bytes_read, 1);
-	if(buf) {
+	if (buf) {
 		/* I am assuming the distribution name is the first string in /proc/version that:
-		- is preceded by a '('
-		- starts with a capital
-		- is followed by a space and a number
-		but i am not sure if this is always true... */
-		for(i=1; i<bytes_read; i++) {
-			if(buf[i-1] == '(' && buf[i] >= 'A' && buf[i] <= 'Z') break;
+		 - is preceded by a '('
+		 - starts with a capital
+		 - is followed by a space and a number
+		 but i am not sure if this is always true... */
+		for (i = 1; i < bytes_read; i++) {
+			if (buf[i - 1] == '(' && buf[i] >= 'A' && buf[i] <= 'Z')
+				break;
 		}
-		if(i < bytes_read) {
+		if (i < bytes_read) {
 			snprintf(p, p_max_size, "%s", &buf[i]);
-			for(i=1; p[i]; i++) {
-				if(p[i-1] == ' ' && p[i] >= '0' && p[i] <= '9') {
-					p[i-1] = 0;
+			for (i = 1; p[i]; i++) {
+				if (p[i - 1] == ' ' && p[i] >= '0' && p[i] <= '9') {
+					p[i - 1] = 0;
 					break;
 				}
 			}
@@ -2617,8 +2646,7 @@ void print_distribution(struct text_object *obj, char *p, int p_max_size)
 #define TMPL_SHORTPROC "%*s %llu %llu %llu %llu"
 #define TMPL_LONGPROC "%*s %llu %llu %llu %llu %llu %llu %llu %llu"
 
-static unsigned long long calc_cpu_total(void)
-{
+static unsigned long long calc_cpu_total(void) {
 	static unsigned long long previous_total = 0;
 	unsigned long long total = 0;
 	unsigned long long t = 0;
@@ -2634,7 +2662,7 @@ static unsigned long long calc_cpu_total(void)
 	unsigned long long softirq = 0;
 	unsigned long long steal = 0;
 	const char *template_ =
-		KFLAG_ISSET(KFLAG_IS_LONGSTAT) ? TMPL_LONGPROC : TMPL_SHORTPROC;
+	KFLAG_ISSET(KFLAG_IS_LONGSTAT) ? TMPL_LONGPROC : TMPL_SHORTPROC;
 
 	ps = open("/proc/stat", O_RDONLY);
 	rc = read(ps, line, BUFFER_LEN - 1);
@@ -2657,26 +2685,24 @@ static unsigned long long calc_cpu_total(void)
  * Calculate each processes cpu			  *
  ******************************************/
 
-inline static void calc_cpu_each(unsigned long long total)
-{
+inline static void calc_cpu_each(unsigned long long total) {
 	float mul = 100.0;
-	if(top_cpu_separate.get(*state))
+	if (top_cpu_separate.get(*state))
 		mul *= info.cpu_count;
 
-	for(struct process *p = first_process; p; p = p->next)
+	for (struct process *p = first_process; p; p = p->next)
 		p->amount = mul * (p->user_time + p->kernel_time) / (float) total;
 }
 
 #ifdef BUILD_IOSTATS
-static void calc_io_each(void)
-{
+static void calc_io_each(void) {
 	struct process *p;
 	unsigned long long sum = 0;
 
 	for (p = first_process; p; p = p->next)
 		sum += p->read_bytes + p->write_bytes;
 
-	if(sum == 0)
+	if (sum == 0)
 		sum = 1; /* to avoid having NANs if no I/O occured */
 	for (p = first_process; p; p = p->next)
 		p->io_perc = 100.0 * (p->read_bytes + p->write_bytes) / (float) sum;
@@ -2692,10 +2718,10 @@ static void calc_io_each(void)
 
 /* These are the guts that extract information out of /proc.
  * Anyone hoping to port wmtop should look here first. */
-static void process_parse_stat(struct process *process)
-{
+static void process_parse_stat(struct process *process) {
 	char line[BUFFER_LEN] = { 0 }, filename[BUFFER_LEN], procname[BUFFER_LEN];
-	char cmdline[BUFFER_LEN] = { 0 }, cmdline_filename[BUFFER_LEN], cmdline_procname[BUFFER_LEN];
+	char cmdline[BUFFER_LEN] = { 0 }, cmdline_filename[BUFFER_LEN],
+			cmdline_procname[BUFFER_LEN];
 	char basename[BUFFER_LEN] = { 0 };
 	char tmpstr[BUFFER_LEN] = { 0 };
 	char state[4];
@@ -2710,7 +2736,8 @@ static void process_parse_stat(struct process *process)
 	struct stat process_stat;
 
 	snprintf(filename, sizeof(filename), PROCFS_TEMPLATE, process->pid);
-	snprintf(cmdline_filename, sizeof(cmdline_filename), PROCFS_CMDLINE_TEMPLATE, process->pid);
+	snprintf(cmdline_filename, sizeof(cmdline_filename),
+			PROCFS_CMDLINE_TEMPLATE, process->pid);
 
 	ps = open(filename, O_RDONLY);
 	if (ps < 0) {
@@ -2720,7 +2747,7 @@ static void process_parse_stat(struct process *process)
 
 	if (fstat(ps, &process_stat) != 0)
 		return;
-	process->uid=process_stat.st_uid;
+	process->uid = process_stat.st_uid;
 
 	/* Mark process as up-to-date. */
 	process->time_stamp = g_time;
@@ -2746,7 +2773,7 @@ static void process_parse_stat(struct process *process)
 
 	/* Some processes have null-separated arguments (see proc(5)); let's fix it */
 	int i = endl;
-	while (i && cmdline[i-1] == 0) {
+	while (i && cmdline[i - 1] == 0) {
 		/* Skip past any trailing null characters */
 		--i;
 	}
@@ -2778,7 +2805,8 @@ static void process_parse_stat(struct process *process)
 		strncpy(cmdline_procname, cmdline, BUFFER_LEN);
 	} else {
 		long int slash_pos = slash_ptr - tmpstr;
-		strncpy(cmdline_procname, cmdline + slash_pos + 1, BUFFER_LEN - slash_pos);
+		strncpy(cmdline_procname, cmdline + slash_pos + 1,
+				BUFFER_LEN - slash_pos);
 		cmdline_procname[BUFFER_LEN - slash_pos] = 0;
 	}
 
@@ -2788,7 +2816,7 @@ static void process_parse_stat(struct process *process)
 	if (!lparen || !rparen || rparen < lparen)
 		return; // this should not happen
 
-	rc = MIN((unsigned)(rparen - lparen - 1), sizeof(procname) - 1);
+	rc = MIN((unsigned )(rparen - lparen - 1), sizeof(procname) - 1);
 	strncpy(procname, lparen + 1, rc);
 	procname[rc] = '\0';
 	strncpy(basename, procname, strlen(procname) + 1);
@@ -2797,15 +2825,17 @@ static void process_parse_stat(struct process *process)
 		strncpy(procname, cmdline_procname, strlen(cmdline_procname) + 1);
 
 	rc = sscanf(rparen + 1, "%3s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu "
-			"%lu %*s %*s %*s %d %*s %*s %*s %llu %llu", state, &process->user_time,
-			&process->kernel_time, &nice_val, &process->vsize, &process->rss);
+			"%lu %*s %*s %*s %d %*s %*s %*s %llu %llu", state,
+			&process->user_time, &process->kernel_time, &nice_val,
+			&process->vsize, &process->rss);
 	if (rc < 6) {
-		NORM_ERR("scaning data for %s failed, got only %d fields", procname, rc);
+		NORM_ERR("scaning data for %s failed, got only %d fields", procname,
+				rc);
 		return;
 	}
 
 	if (state[0] == 'R')
-		++ info.run_procs;
+		++info.run_procs;
 
 	free_and_zero(process->name);
 	free_and_zero(process->basename);
@@ -2843,10 +2873,9 @@ static void process_parse_stat(struct process *process)
 
 #ifdef BUILD_IOSTATS
 #define PROCFS_TEMPLATE_IO "/proc/%d/io"
-static void process_parse_io(struct process *process)
-{
-	static const char *read_bytes_str="read_bytes:";
-	static const char *write_bytes_str="write_bytes:";
+static void process_parse_io(struct process *process) {
+	static const char *read_bytes_str = "read_bytes:";
+	static const char *write_bytes_str = "write_bytes:";
 
 	char line[BUFFER_LEN] = { 0 }, filename[BUFFER_LEN];
 	int ps;
@@ -2918,8 +2947,7 @@ static void process_parse_io(struct process *process)
 
 /* This function seems to hog all of the CPU time.
  * I can't figure out why - it doesn't do much. */
-static void calculate_stats(struct process *process)
-{
+static void calculate_stats(struct process *process) {
 	/* compute each process cpu usage by reading /proc/<proc#>/stat */
 	process_parse_stat(process);
 
@@ -2939,8 +2967,7 @@ static void calculate_stats(struct process *process)
  * Update process table					  *
  ******************************************/
 
-static void update_process_table(void)
-{
+static void update_process_table(void) {
 	DIR *dir;
 	struct dirent *entry;
 
@@ -2961,7 +2988,7 @@ static void update_process_table(void)
 		}
 
 		if (sscanf(entry->d_name, "%d", &pid) > 0) {
-		/* compute each process cpu usage */
+			/* compute each process cpu usage */
 			calculate_stats(get_process(pid));
 		}
 	}
@@ -2969,14 +2996,13 @@ static void update_process_table(void)
 	closedir(dir);
 }
 
-void get_top_info(void)
-{
+void get_top_info(void) {
 	unsigned long long total = 0;
 
-	total = calc_cpu_total();	/* calculate the total of the processor */
-	update_process_table();		/* update the table with process list */
-	calc_cpu_each(total);		/* and then the percentage for each task */
+	total = calc_cpu_total(); /* calculate the total of the processor */
+	update_process_table(); /* update the table with process list */
+	calc_cpu_each(total); /* and then the percentage for each task */
 #ifdef BUILD_IOSTATS
-	calc_io_each();			/* percentage of I/O for each task */
+	calc_io_each(); /* percentage of I/O for each task */
 #endif /* BUILD_IOSTATS */
 }
