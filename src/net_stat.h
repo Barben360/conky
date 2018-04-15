@@ -85,7 +85,6 @@ struct net_stat {
 extern struct net_stat netstats[];
 
 struct net_stat *get_net_stat(const char *, void *, void *);
-void clean_net_stat(char [MAX_NET_INTERFACES][256], unsigned int);
 
 void parse_net_stat_arg(struct text_object *, const char *, void *);
 void parse_net_stat_bar_arg(struct text_object *, const char *, void *);

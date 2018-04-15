@@ -75,7 +75,7 @@
  * and it'll take me a while to write a replacement. */
 #define BUFFER_LEN 1024
 
-#define MAX_SP 25	// number of elements to sort
+#define MAX_SP 20	// number of elements to sort
 
 /******************************************
  * Process class						  *

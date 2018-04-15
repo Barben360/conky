@@ -64,6 +64,7 @@ static conky::simple_config_setting<if_up_strictness_> if_up_strictness(
  * global array of structs containing network statistics for each interface
  **/
 struct net_stat netstats[MAX_NET_INTERFACES];
+struct net_stat foo_netstats;
 
 /**
  * Returns pointer to specified interface in netstats array.
@@ -88,7 +89,7 @@ struct net_stat *get_net_stat(const char *dev, void *free_at_crash1,
 		}
 	}
 
-	/* wasn't found? add it */
+	/* wasn't found? add it or returning foo_netstats*/
 	for (i = 0; i < MAX_NET_INTERFACES; i++) {
 		if (netstats[i].dev == 0) {
 			netstats[i].dev = strndup(dev, text_buffer_size.get(*state));
@@ -99,41 +100,16 @@ struct net_stat *get_net_stat(const char *dev, void *free_at_crash1,
 			return &netstats[i];
 		}
 	}
+	foo_netstats.dev = strndup(dev, text_buffer_size.get(*state));
+	/* initialize last_read_recv and last_read_trans to -1 denoting
+	 * that they were never read before */
+	foo_netstats.last_read_recv = -1;
+	foo_netstats.last_read_trans = -1;
+	return &foo_netstats;
 
 	CRIT_ERR(free_at_crash1, free_at_crash2,
 			"too many interfaces used (limit is %d)", MAX_NET_INTERFACES);
 	return 0;
-}
-
-/**
- * Cleans netstats array entries that does not exist in existing_dev_names
- * @param existing_dev_names Existing devices when function is called
- * @param n_existing Number of existing devices
- */
-void clean_net_stat(char existing_dev_names[MAX_NET_INTERFACES][256], unsigned int n_existing) {
-	for (unsigned int i = 0; i < MAX_NET_INTERFACES; i++) {
-		char *dev1 = netstats[i].dev;
-		bool found = false;
-		for (unsigned int j = 0; !found && (j < n_existing); j++) {
-			if (dev1 && strcmp(dev1, existing_dev_names[j]) == 0) {
-				found = true;
-			}
-		}
-		if (!found) {
-			// Cleaning netstats entry
-#ifdef BUILD_IPV6
-			struct v6addr *nextv6;
-#endif /* BUILD_IPV6 */
-			free_and_zero(netstats[i].dev);
-#ifdef BUILD_IPV6
-			while (netstats[i].v6addrs) {
-				nextv6 = netstats[i].v6addrs;
-				netstats[i].v6addrs = netstats[i].v6addrs->next;
-				free_and_zero(nextv6);
-			}
-#endif /* BUILD_IPV6 */
-		}
-	}
 }
 
 void parse_net_stat_arg(struct text_object *obj, const char *arg,
@@ -494,6 +470,20 @@ void clear_net_stats(void) {
 #endif /* BUILD_IPV6 */
 	}
 	memset(netstats, 0, sizeof(netstats));
+}
+
+void clean_net_stats(net_stat *in) {
+#ifdef BUILD_IPV6
+	struct v6addr *nextv6;
+#endif /* BUILD_IPV6 */
+	free_and_zero(in->dev);
+#ifdef BUILD_IPV6
+	while (in->v6addrs) {
+		nextv6 = in->v6addrs;
+		in->v6addrs = in->v6addrs->next;
+		free_and_zero(nextv6);
+	}
+#endif /* BUILD_IPV6 */
 }
 
 void parse_if_up_arg(struct text_object *obj, const char *arg) {
