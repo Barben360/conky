@@ -89,7 +89,7 @@ struct net_stat *get_net_stat(const char *dev, void *free_at_crash1,
 		}
 	}
 
-	/* wasn't found? add it or returning foo_netstats*/
+	/* wasn't found? add it or returning foo_netstats if list already full*/
 	for (i = 0; i < MAX_NET_INTERFACES; i++) {
 		if (netstats[i].dev == 0) {
 			netstats[i].dev = strndup(dev, text_buffer_size.get(*state));
@@ -100,16 +100,13 @@ struct net_stat *get_net_stat(const char *dev, void *free_at_crash1,
 			return &netstats[i];
 		}
 	}
+	clear_net_stats(&foo_netstats);
 	foo_netstats.dev = strndup(dev, text_buffer_size.get(*state));
 	/* initialize last_read_recv and last_read_trans to -1 denoting
 	 * that they were never read before */
 	foo_netstats.last_read_recv = -1;
 	foo_netstats.last_read_trans = -1;
 	return &foo_netstats;
-
-	CRIT_ERR(free_at_crash1, free_at_crash2,
-			"too many interfaces used (limit is %d)", MAX_NET_INTERFACES);
-	return 0;
 }
 
 void parse_net_stat_arg(struct text_object *obj, const char *arg,
@@ -472,7 +469,7 @@ void clear_net_stats(void) {
 	memset(netstats, 0, sizeof(netstats));
 }
 
-void clean_net_stats(net_stat *in) {
+void clear_net_stats(net_stat *in) {
 #ifdef BUILD_IPV6
 	struct v6addr *nextv6;
 #endif /* BUILD_IPV6 */
